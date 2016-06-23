@@ -188,13 +188,7 @@ endfunction
 function! go#cmd#Test(bang, compile, ...)
     let args = ["test"]
 
-    if empty(glob("*_test.go"))
-        call go#util#EchoError("no tests files available")
-        return
-    endif
-
-    " don't run the test, only compile it. Useful to capture and fix errors or
-    " to create a test binary.
+    " don't run the test, only compile it. Useful to capture and fix errors.
     if a:compile
         let compile_file = "vim-go-test-compile"
         call extend(args, ["-c", "-o", compile_file])
@@ -203,7 +197,9 @@ function! go#cmd#Test(bang, compile, ...)
     if a:0
         " expand all wildcards(i.e: '%' to the current file name)
         let goargs = map(copy(a:000), "expand(v:val)")
-        let goargs = go#util#Shelllist(goargs, 1)
+        if !has('nvim')
+            let goargs = go#util#Shelllist(goargs, 1)
+        endif
 
         call extend(args, goargs, 1)
     else
@@ -236,25 +232,21 @@ function! go#cmd#Test(bang, compile, ...)
     redraw
 
     let command = "go " . join(args, ' ')
-
     let out = go#tool#ExecuteInDir(command)
 
     let l:listtype = "quickfix"
+
+    let cd = exists('*haslocaldir') && haslocaldir() ? 'lcd ' : 'cd '
+    let dir = getcwd()
+    execute cd fnameescape(expand("%:p:h"))
 
     if a:compile
         call delete(compile_file)
     endif
 
     if go#util#ShellError() != 0
-        let cd = exists('*haslocaldir') && haslocaldir() ? 'lcd ' : 'cd '
-        let dir = getcwd()
-        try
-            execute cd fnameescape(expand("%:p:h"))
-            let errors = go#tool#ParseErrors(split(out, '\n'))
-            let errors = go#tool#FilterValids(errors)
-        finally
-            execute cd . fnameescape(dir)
-        endtry
+        let errors = go#tool#ParseErrors(split(out, '\n'))
+        let errors = go#tool#FilterValids(errors)
 
         call go#list#Populate(l:listtype, errors)
         call go#list#Window(l:listtype, len(errors))
@@ -275,6 +267,7 @@ function! go#cmd#Test(bang, compile, ...)
             echon "vim-go: " | echohl Function | echon "[test] PASS" | echohl None
         endif
     endif
+    execute cd . fnameescape(dir)
 endfunction
 
 " Testfunc runs a single test that surrounds the current cursor position.

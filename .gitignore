@@ -1,2 +1,7 @@
 doc/tags
 *.swp
+.DS_Store
+
+# Test specific files
+FAILED
+test.log

@@ -29,7 +29,6 @@ cp -r ftplugin $DEST/
 #cp -r gosnippets $DEST/
 cp -r indent $DEST/
 cp -r plugin $DEST/
-cp -r rplugin $DEST/
 cp -r scripts $DEST/
 cp -r syntax $DEST/
 cp -r templates $DEST/

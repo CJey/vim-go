@@ -1,7 +1,6 @@
-doc/tags
-*.swp
 .DS_Store
-
-# Test specific files
-FAILED
-test.log
+/doc/tags
+/.coverage.covimerage
+/coverage.xml
+*.pyc
+*.swp

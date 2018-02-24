@@ -18,8 +18,11 @@ function! go#term#newmode(bang, cmd, mode) abort
     let mode = g:go_term_mode
   endif
 
+  " modify GOPATH if needed
+  let old_gopath = $GOPATH
+  let $GOPATH = go#path#Detect()
+
   " execute go build in the files directory
-  let l:winnr = winnr()
   let cd = exists('*haslocaldir') && haslocaldir() ? 'lcd ' : 'cd '
   let dir = getcwd()
 
@@ -46,6 +49,9 @@ function! go#term#newmode(bang, cmd, mode) abort
 
   execute cd . fnameescape(dir)
 
+  " restore back GOPATH
+  let $GOPATH = old_gopath
+
   let job.id = id
   let job.cmd = a:cmd
   startinsert
@@ -54,25 +60,18 @@ function! go#term#newmode(bang, cmd, mode) abort
   let height = get(g:, 'go_term_height', winheight(0))
   let width = get(g:, 'go_term_width', winwidth(0))
 
-  " we are careful how to resize. for example it's vsplit we don't change
+  " we are careful how to resize. for example it's vertical we don't change
   " the height. The below command resizes the buffer
-
-  if mode =~ "vertical" || mode =~ "vsplit" || mode =~ "vnew"
-    exe 'vertical resize ' . width
-  elseif mode =~ "split" || mode =~ "new"
+  if a:mode == "split"
     exe 'resize ' . height
+  elseif a:mode == "vertical"
+    exe 'vertical resize ' . width
   endif
 
   " we also need to resize the pty, so there you go...
   call jobresize(id, width, height)
 
   let s:jobs[id] = job
-  stopinsert
-
-  if l:winnr !=# winnr()
-    exe l:winnr . "wincmd w"
-  endif
-
   return id
 endfunction
 
@@ -100,7 +99,7 @@ function! s:on_exit(job_id, exit_status, event) dict abort
   endif
   let job = s:jobs[a:job_id]
 
-  let l:listtype = go#list#Type("_term")
+  let l:listtype = "locationlist"
 
   " usually there is always output so never branch into this clause
   if empty(job.stdout)
